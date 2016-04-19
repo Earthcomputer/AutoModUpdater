@@ -14,7 +14,9 @@ import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
@@ -251,5 +253,35 @@ public class BlockAdapter extends Block {
 	public Item func_149650_a(int meta, Random rand, int fortune) {
 		return getItemDropped(getStateFromMeta(meta), rand, fortune);
 	}
+
+	@Override
+	@MethodPair(name = "getPlayerRelativeBlockHardness", type = NEWER)
+	public float getPlayerRelativeBlockHardness(EntityPlayer player, World world, BlockPos pos) {
+		return func_149737_a(player, world, pos.getX(), pos.getY(), pos.getZ());
+	}
+
+	@MethodPair(name = "getPlayerRelativeBlockHardness", type = OLDER)
+	public float func_149737_a(EntityPlayer player, World world, int x, int y, int z) {
+		return getPlayerRelativeBlockHardness(player, world, new BlockPos(x, y, z));
+	}
+
+	// dropBlockAsItem
+	@AdapterMethod
+	public final void func_149642_a(World world, int x, int y, int z, int meta, int fortune) {
+		dropBlockAsItem(world, new BlockPos(x, y, z), getStateFromMeta(meta), fortune);
+	}
+
+	@Override
+	@MethodPair(name = "dropBlockAsItemWithChance", type = NEWER)
+	public void dropBlockAsItemWithChance(World world, BlockPos pos, IBlockState state, float chance, int fortune) {
+		func_149690_a(world, pos.getX(), pos.getY(), pos.getZ(), getMetaFromState(state), chance, fortune);
+	}
+
+	@MethodPair(name = "dropBlockAsItemWithChance", type = OLDER)
+	public void func_149690_a(World world, int x, int y, int z, int meta, float chance, int fortune) {
+		dropBlockAsItemWithChance(world, new BlockPos(x, y, z), getStateFromMeta(meta), chance, fortune);
+	}
+	
+	// TODO: dropBlockAsItem, spawnAsEntity issues
 
 }
