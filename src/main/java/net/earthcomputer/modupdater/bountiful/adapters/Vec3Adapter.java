@@ -20,31 +20,37 @@ public class Vec3Adapter extends Vec3 {
 	}
 
 	@Getter
+	@AdapterMethod
 	public final double getNonFinalXCoord() {
 		return nonFinalXCoord;
 	}
 
 	@Getter
+	@AdapterMethod
 	public final double getNonFinalYCoord() {
 		return nonFinalYCoord;
 	}
 
 	@Getter
+	@AdapterMethod
 	public final double getNonFinalZCoord() {
 		return nonFinalZCoord;
 	}
 
 	@Setter
+	@AdapterMethod
 	public final void setNonFinalXCoord(double xCoord) {
 		this.nonFinalXCoord = xCoord;
 	}
 
 	@Setter
+	@AdapterMethod
 	public final void setNonFinalYCoord(double yCoord) {
 		this.nonFinalYCoord = yCoord;
 	}
 
 	@Setter
+	@AdapterMethod
 	public final void setNonFinalZCoord(double zCoord) {
 		this.nonFinalZCoord = zCoord;
 	}

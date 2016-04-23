@@ -7,6 +7,7 @@ import com.google.common.base.Function;
 import net.earthcomputer.modupdater.core.ClassAdapters;
 import net.earthcomputer.modupdater.core.ClassNameReplacements;
 import net.earthcomputer.modupdater.core.FieldAccess;
+import net.earthcomputer.modupdater.core.MethodAccess;
 import net.minecraftforge.fml.relauncher.IFMLCallHook;
 
 public class BountifulUpdaterSetup implements IFMLCallHook {
@@ -35,6 +36,10 @@ public class BountifulUpdaterSetup implements IFMLCallHook {
 				"setNonFinalYCoord");
 		FieldAccess.register("net.minecraft.util.Vec3", "zCoord", "field_72449_c", "getNonFinalZCoord",
 				"setNonFinalZCoord");
+
+		MethodAccess.register("net.minecraft.block.Block", "spawnAsEntity", "func_180635_a",
+				"(Lnet/minecraft/world/World;Lnet/minecraft/util/BlockPos;Lnet/minecraft/item/ItemStack;)V",
+				"spawnAsEntityPolymorphic");
 		return null;
 	}
 

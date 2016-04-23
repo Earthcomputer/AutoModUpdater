@@ -6,7 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.earthcomputer.modupdater.core.transformers.ClassNameReplacerTransformer;
-import net.earthcomputer.modupdater.core.transformers.FieldAccessTransformer;
+import net.earthcomputer.modupdater.core.transformers.MemberAccessTransformer;
 import net.earthcomputer.modupdater.core.transformers.AdapterClassTransformer;
 import net.earthcomputer.modupdater.core.transformers.ModLoadingTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
@@ -38,7 +38,7 @@ public class ModUpdaterPlugin implements IFMLLoadingPlugin {
 	@Override
 	public String[] getASMTransformerClass() {
 		return new String[] { ClassNameReplacerTransformer.class.getName(), ModLoadingTransformer.class.getName(),
-				AdapterClassTransformer.class.getName(), FieldAccessTransformer.class.getName() };
+				AdapterClassTransformer.class.getName(), MemberAccessTransformer.class.getName() };
 	}
 
 	@Override

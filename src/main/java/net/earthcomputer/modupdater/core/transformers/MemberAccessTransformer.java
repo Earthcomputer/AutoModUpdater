@@ -10,13 +10,15 @@ import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
+import net.earthcomputer.modupdater.core.AccessMethod;
 import net.earthcomputer.modupdater.core.FieldAccess;
 import net.earthcomputer.modupdater.core.Getter;
+import net.earthcomputer.modupdater.core.MethodAccess;
 import net.earthcomputer.modupdater.core.Setter;
 import net.minecraft.launchwrapper.IClassTransformer;
 import scala.tools.asm.Type;
 
-public class FieldAccessTransformer implements IClassTransformer {
+public class MemberAccessTransformer implements IClassTransformer {
 
 	@Override
 	public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -30,12 +32,15 @@ public class FieldAccessTransformer implements IClassTransformer {
 		for (MethodNode method : node.methods) {
 			boolean isGetter = false;
 			boolean isSetter = false;
+			boolean isAccessMethod = false;
 			if (method.visibleAnnotations != null) {
 				for (AnnotationNode annotation : method.visibleAnnotations) {
 					if (annotation.desc.equals(Type.getDescriptor(Getter.class))) {
 						isGetter = true;
 					} else if (annotation.desc.equals(Type.getDescriptor(Setter.class))) {
 						isSetter = true;
+					} else if (annotation.desc.equals(Type.getDescriptor(AccessMethod.class))) {
+						isAccessMethod = true;
 					}
 				}
 			}
@@ -78,11 +83,21 @@ public class FieldAccessTransformer implements IClassTransformer {
 								}
 							}
 						}
+					} else if (insn.getType() == AbstractInsnNode.METHOD_INSN) {
+						if (!isAccessMethod) {
+							MethodInsnNode methodInsn = (MethodInsnNode) insn;
+							String ownerClassName = methodInsn.owner.replace('/', '.');
+							String replacement = MethodAccess.getNewName(ownerClassName, methodInsn.name,
+									methodInsn.desc);
+							if (replacement != null) {
+								methodInsn.name = replacement;
+							}
+						}
 					}
 				}
 			}
 		}
-		
+
 		ClassWriter writer = new ClassWriter(0);
 		node.accept(writer);
 		return writer.toByteArray();

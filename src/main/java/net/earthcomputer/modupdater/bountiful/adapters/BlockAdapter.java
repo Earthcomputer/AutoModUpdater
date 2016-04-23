@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Random;
 
 import net.earthcomputer.modupdater.bountiful.oldclasses.IIcon;
+import net.earthcomputer.modupdater.core.AccessMethod;
 import net.earthcomputer.modupdater.core.AdapterField;
 import net.earthcomputer.modupdater.core.AdapterMethod;
 import net.earthcomputer.modupdater.core.MethodPair;
@@ -20,6 +21,7 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
@@ -277,7 +279,7 @@ public class BlockAdapter extends Block {
 
 	// dropBlockAsItem
 	@AdapterMethod
-	public final void func_149642_a(World world, int x, int y, int z, int meta, int fortune) {
+	public final void func_149697_b(World world, int x, int y, int z, int meta, int fortune) {
 		dropBlockAsItem(world, new BlockPos(x, y, z), getStateFromMeta(meta), fortune);
 	}
 
@@ -290,6 +292,22 @@ public class BlockAdapter extends Block {
 	@MethodPair(name = "dropBlockAsItemWithChance", type = OLDER)
 	public void func_149690_a(World world, int x, int y, int z, int meta, float chance, int fortune) {
 		dropBlockAsItemWithChance(world, new BlockPos(x, y, z), getStateFromMeta(meta), chance, fortune);
+	}
+
+	@AccessMethod
+	@AdapterMethod
+	public static void spawnAsEntityPolymorphic(World world, BlockPos pos, ItemStack stack) {
+		Block block = stack == null ? null : getBlockFromItem(stack.getItem());
+		if (block == null)
+			spawnAsEntity(world, pos, stack);
+		else
+			((BlockAdapter) block).func_149642_a(world, pos.getX(), pos.getY(), pos.getZ(), stack);
+	}
+
+	@AccessMethod
+	@AdapterMethod
+	protected void func_149642_a(World world, int x, int y, int z, ItemStack stack) {
+		spawnAsEntity(world, new BlockPos(x, y, z), stack);
 	}
 
 	@Override
@@ -461,6 +479,91 @@ public class BlockAdapter extends Block {
 		Vec3 modifiedAcceleration = modifyAcceleration(world, new BlockPos(x, y, z), entity, vec);
 		((Vec3Adapter) vec).func_72439_b(modifiedAcceleration.xCoord, modifiedAcceleration.yCoord,
 				modifiedAcceleration.zCoord);
+	}
+
+	@Override
+	@MethodPair(name = "setBlockBoundsBasedOnState", type = NEWER)
+	public void setBlockBoundsBasedOnState(IBlockAccess world, BlockPos pos) {
+		func_149719_a(world, pos.getX(), pos.getY(), pos.getZ());
+	}
+
+	@MethodPair(name = "setBlockBoundsBasedOnState", type = OLDER)
+	public void func_149719_a(IBlockAccess world, int x, int y, int z) {
+		setBlockBoundsBasedOnState(world, new BlockPos(x, y, z));
+	}
+
+	@Override
+	@SideOnly(Side.CLIENT)
+	@MethodPair(name = "getRenderColor", type = NEWER)
+	public int getRenderColor(IBlockState state) {
+		return func_149741_i(getMetaFromState(state));
+	}
+
+	@SideOnly(Side.CLIENT)
+	@MethodPair(name = "getRenderColor", type = OLDER)
+	public int func_149741_i(int meta) {
+		return getRenderColor(getStateFromMeta(meta));
+	}
+
+	@Override
+	@SideOnly(Side.CLIENT)
+	@MethodPair(name = "colorMultiplier", type = NEWER)
+	public int colorMultiplier(IBlockAccess world, BlockPos pos, int tint) {
+		return func_149720_d(world, pos.getX(), pos.getY(), pos.getZ());
+	}
+
+	@SideOnly(Side.CLIENT)
+	@MethodPair(name = "colorMultiplier", type = OLDER)
+	public int func_149720_d(IBlockAccess world, int x, int y, int z) {
+		return colorMultiplier(world, new BlockPos(x, y, z), 0);
+	}
+
+	@Override
+	@MethodPair(name = "isProvidingWeakPower", type = NEWER)
+	public int isProvidingWeakPower(IBlockAccess world, BlockPos pos, IBlockState state, EnumFacing side) {
+		return func_149709_b(world, pos.getX(), pos.getY(), pos.getZ(), side.getIndex());
+	}
+
+	@MethodPair(name = "isProvidingWeakPower", type = OLDER)
+	public int func_149709_b(IBlockAccess world, int x, int y, int z, int side) {
+		BlockPos pos = new BlockPos(x, y, z);
+		return isProvidingWeakPower(world, pos, world.getBlockState(pos), EnumFacing.getFront(side));
+	}
+
+	@Override
+	@MethodPair(name = "onEntityCollidedWithBlock", type = NEWER)
+	public void onEntityCollidedWithBlock(World world, BlockPos pos, IBlockState state, Entity entity) {
+		func_149670_a(world, pos.getX(), pos.getY(), pos.getZ(), entity);
+	}
+
+	@MethodPair(name = "onEntityCollidedWithBlock", type = OLDER)
+	public void func_149670_a(World world, int x, int y, int z, Entity entity) {
+		BlockPos pos = new BlockPos(x, y, z);
+		onEntityCollidedWithBlock(world, pos, world.getBlockState(pos), entity);
+	}
+
+	@Override
+	@MethodPair(name = "isProvidingStrongPower", type = NEWER)
+	public int isProvidingStrongPower(IBlockAccess world, BlockPos pos, IBlockState state, EnumFacing side) {
+		return func_149748_c(world, pos.getX(), pos.getY(), pos.getZ(), side.getIndex());
+	}
+
+	@MethodPair(name = "isProvidingStrongPower", type = OLDER)
+	public int func_149748_c(IBlockAccess world, int x, int y, int z, int side) {
+		BlockPos pos = new BlockPos(x, y, z);
+		return isProvidingStrongPower(world, pos, world.getBlockState(pos), EnumFacing.getFront(side));
+	}
+
+	@Override
+	@MethodPair(name = "harvestBlock", type = NEWER)
+	public void harvestBlock(World world, EntityPlayer player, BlockPos pos, IBlockState state, TileEntity tileEntity) {
+		func_149636_a(world, player, pos.getX(), pos.getY(), pos.getZ(), getMetaFromState(state));
+	}
+
+	@MethodPair(name = "harvestBlock", type = OLDER)
+	public void func_149636_a(World world, EntityPlayer player, int x, int y, int z, int meta) {
+		BlockPos pos = new BlockPos(x, y, z);
+		harvestBlock(world, player, pos, getStateFromMeta(meta), world.getTileEntity(pos));
 	}
 
 }
