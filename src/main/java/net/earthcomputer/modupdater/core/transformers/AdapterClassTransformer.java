@@ -27,6 +27,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import net.earthcomputer.modupdater.core.AdapterField;
 import net.earthcomputer.modupdater.core.AdapterMethod;
 import net.earthcomputer.modupdater.core.ClassAdapters;
 import net.earthcomputer.modupdater.core.EnumPriority;
@@ -97,17 +98,30 @@ public class AdapterClassTransformer implements IClassTransformer {
 
 			// Copy fields
 			for (FieldNode newField : adapterClass.fields) {
-				boolean fieldExists = false;
-				for (FieldNode existingField : originalClass.fields) {
-					if (newField.name.equals(existingField.name)) {
-						fieldExists = true;
-						break;
+				boolean isAdapterField = false;
+				if (newField.visibleAnnotations != null) {
+					for (AnnotationNode annotation : newField.visibleAnnotations) {
+						if (annotation.desc.equals(Type.getDescriptor(AdapterField.class))) {
+							isAdapterField = true;
+							break;
+						}
 					}
 				}
-				if (fieldExists) {
-					ModUpdaterPlugin.LOGGER.warn("Skipping adapter field " + newField.name + " as it already exists");
-				} else {
-					originalClass.fields.add(newField);
+				if (isAdapterField) {
+					boolean fieldExists = false;
+					for (FieldNode existingField : originalClass.fields) {
+						if (newField.name.equals(existingField.name)) {
+							fieldExists = true;
+							break;
+						}
+					}
+
+					if (fieldExists) {
+						ModUpdaterPlugin.LOGGER
+								.warn("Skipping adapter field " + newField.name + " as it already exists");
+					} else {
+						originalClass.fields.add(newField);
+					}
 				}
 			}
 
@@ -116,12 +130,20 @@ public class AdapterClassTransformer implements IClassTransformer {
 			// Copy methods and register optional overrides
 			for (MethodNode newMethod : adapterClass.methods) {
 				boolean isAdapterMethod = false;
+				boolean adapterMethodReplaces = false;
 				if (newMethod.visibleAnnotations != null) {
 					Iterator<AnnotationNode> annotationI = newMethod.visibleAnnotations.iterator();
 					while (annotationI.hasNext()) {
 						AnnotationNode annotation = annotationI.next();
 						if (annotation.desc.equals(Type.getDescriptor(AdapterMethod.class))) {
 							isAdapterMethod = true;
+							if (annotation.values != null) {
+								for (int i = 0; i < annotation.values.size(); i += 2) {
+									if ("replace".equals(annotation.values.get(i))) {
+										adapterMethodReplaces = (Boolean) annotation.values.get(i + 1);
+									}
+								}
+							}
 							annotationI.remove();
 						} else if (annotation.desc.equals(Type.getDescriptor(InSubclasses.class))) {
 							EnumPriority priority = EnumPriority.OLD_TO_NEW;
@@ -150,13 +172,16 @@ public class AdapterClassTransformer implements IClassTransformer {
 				}
 				if (isAdapterMethod) {
 					boolean methodExists = false;
-					for (MethodNode existingMethod : originalClass.methods) {
+					Iterator<MethodNode> methodI = originalClass.methods.iterator();
+					while (methodI.hasNext()) {
+						MethodNode existingMethod = methodI.next();
 						if (newMethod.name.equals(existingMethod.name) && newMethod.desc.equals(existingMethod.desc)) {
 							methodExists = true;
-							break;
+							if (adapterMethodReplaces)
+								methodI.remove();
 						}
 					}
-					if (methodExists) {
+					if (methodExists && !adapterMethodReplaces) {
 						ModUpdaterPlugin.LOGGER
 								.warn("Skipping adapter method " + newMethod.name + " as it already exists");
 					} else {

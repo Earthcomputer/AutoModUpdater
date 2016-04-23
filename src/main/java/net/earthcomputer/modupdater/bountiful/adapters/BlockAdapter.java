@@ -7,19 +7,26 @@ import java.util.List;
 import java.util.Random;
 
 import net.earthcomputer.modupdater.bountiful.oldclasses.IIcon;
+import net.earthcomputer.modupdater.core.AdapterField;
 import net.earthcomputer.modupdater.core.AdapterMethod;
 import net.earthcomputer.modupdater.core.MethodPair;
+import net.earthcomputer.modupdater.core.ModUpdaterPlugin;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumWorldBlockLayer;
+import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
+import net.minecraft.world.Explosion;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
@@ -28,11 +35,14 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 public class BlockAdapter extends Block {
 
 	// blockConstructorCalled
+	@AdapterField
 	protected boolean field_149791_x = true;
 	// blockIcon
 	@SideOnly(Side.CLIENT)
+	@AdapterField
 	protected IIcon field_149761_L;
 	// textureName
+	@AdapterField
 	protected String field_149768_d;
 
 	public BlockAdapter(Material materialIn) {
@@ -281,7 +291,176 @@ public class BlockAdapter extends Block {
 	public void func_149690_a(World world, int x, int y, int z, int meta, float chance, int fortune) {
 		dropBlockAsItemWithChance(world, new BlockPos(x, y, z), getStateFromMeta(meta), chance, fortune);
 	}
-	
-	// TODO: dropBlockAsItem, spawnAsEntity issues
+
+	@Override
+	@MethodPair(name = "dropXpOnBlockBreak", type = NEWER)
+	public void dropXpOnBlockBreak(World world, BlockPos pos, int amt) {
+		func_149657_c(world, pos.getX(), pos.getY(), pos.getZ(), amt);
+	}
+
+	@MethodPair(name = "dropXpOnBlockBreak", type = OLDER)
+	public void func_149657_c(World world, int x, int y, int z, int amt) {
+		dropXpOnBlockBreak(world, new BlockPos(x, y, z), amt);
+	}
+
+	@Override
+	@MethodPair(name = "damageDropped", type = NEWER)
+	public int damageDropped(IBlockState state) {
+		return func_149692_a(getMetaFromState(state));
+	}
+
+	@MethodPair(name = "damageDropped", type = OLDER)
+	public int func_149692_a(int meta) {
+		return damageDropped(getStateFromMeta(meta));
+	}
+
+	@Override
+	@MethodPair(name = "collisionRayTrace", type = NEWER)
+	public MovingObjectPosition collisionRayTrace(World world, BlockPos pos, Vec3 start, Vec3 end) {
+		return func_149731_a(world, pos.getX(), pos.getY(), pos.getZ(), start, end);
+	}
+
+	@MethodPair(name = "collisionRayTrace", type = OLDER)
+	public MovingObjectPosition func_149731_a(World world, int x, int y, int z, Vec3 start, Vec3 end) {
+		return collisionRayTrace(world, new BlockPos(x, y, z), start, end);
+	}
+
+	@Override
+	@MethodPair(name = "onBlockDestroyedByExplosion", type = NEWER)
+	public void onBlockDestroyedByExplosion(World world, BlockPos pos, Explosion explosion) {
+		func_149723_a(world, pos.getX(), pos.getY(), pos.getZ(), explosion);
+	}
+
+	@MethodPair(name = "onBlockDestroyedByExplosion", type = OLDER)
+	public void func_149723_a(World world, int x, int y, int z, Explosion explosion) {
+		onBlockDestroyedByExplosion(world, new BlockPos(x, y, z), explosion);
+	}
+
+	@Override
+	@MethodPair(name = "canReplace", type = NEWER)
+	public boolean canReplace(World world, BlockPos pos, EnumFacing side, ItemStack stack) {
+		return func_149705_a(world, pos.getX(), pos.getY(), pos.getZ(), side.getIndex(), stack);
+	}
+
+	@MethodPair(name = "canReplace", type = OLDER)
+	public boolean func_149705_a(World world, int x, int y, int z, int side, ItemStack stack) {
+		return canReplace(world, new BlockPos(x, y, z), EnumFacing.getFront(side), stack);
+	}
+
+	@Override
+	@MethodPair(name = "getRenderBlockPass", type = NEWER)
+	public EnumWorldBlockLayer getBlockLayer() {
+		return func_149701_w() == 0 ? EnumWorldBlockLayer.CUTOUT_MIPPED : EnumWorldBlockLayer.TRANSLUCENT;
+	}
+
+	@MethodPair(name = "getRenderBlockPass", type = OLDER)
+	public int func_149701_w() {
+		switch (getBlockLayer()) {
+		case CUTOUT:
+			return 0;
+		case CUTOUT_MIPPED:
+			return 0;
+		case SOLID:
+			return 0;
+		case TRANSLUCENT:
+			return 1;
+		default:
+			return -1;
+		}
+	}
+
+	@Override
+	@MethodPair(name = "canPlaceBlockOnSide", type = NEWER)
+	public boolean canPlaceBlockOnSide(World world, BlockPos pos, EnumFacing side) {
+		return func_149707_d(world, pos.getX(), pos.getY(), pos.getZ(), side.getIndex());
+	}
+
+	@MethodPair(name = "canPlaceBlockOnSide", type = OLDER)
+	public boolean func_149707_d(World world, int x, int y, int z, int side) {
+		return canPlaceBlockOnSide(world, new BlockPos(x, y, z), EnumFacing.getFront(side));
+	}
+
+	@Override
+	@MethodPair(name = "canPlaceBlockAt", type = NEWER)
+	public boolean canPlaceBlockAt(World world, BlockPos pos) {
+		return func_149742_c(world, pos.getX(), pos.getY(), pos.getZ());
+	}
+
+	@MethodPair(name = "canPlaceBlockAt", type = OLDER)
+	public boolean func_149742_c(World world, int x, int y, int z) {
+		return canPlaceBlockAt(world, new BlockPos(x, y, z));
+	}
+
+	@Override
+	@MethodPair(name = "onBlockActivated", type = NEWER)
+	public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player, EnumFacing side,
+			float hitX, float hitY, float hitZ) {
+		return func_149727_a(world, pos.getX(), pos.getY(), pos.getZ(), player, side.getIndex(), hitX, hitY, hitZ);
+	}
+
+	@MethodPair(name = "onBlockActivated", type = OLDER)
+	public boolean func_149727_a(World world, int x, int y, int z, EntityPlayer player, int side, float hitX,
+			float hitY, float hitZ) {
+		BlockPos pos = new BlockPos(x, y, z);
+		return onBlockActivated(world, pos, world.getBlockState(pos), player, EnumFacing.getFront(side), hitX, hitY,
+				hitZ);
+	}
+
+	@Override
+	@MethodPair(name = "onEntityWalking", type = NEWER)
+	public void onEntityCollidedWithBlock(World world, BlockPos pos, Entity entity) {
+		func_149724_b(world, pos.getX(), pos.getY(), pos.getZ(), entity);
+	}
+
+	@MethodPair(name = "onEntityWalking", type = OLDER)
+	public void func_149724_b(World world, int x, int y, int z, Entity entity) {
+		onEntityCollidedWithBlock(world, new BlockPos(x, y, z), entity);
+	}
+
+	@Override
+	@MethodPair(name = "onBlockPlaced", type = NEWER)
+	public IBlockState onBlockPlaced(World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ,
+			int meta, EntityLivingBase placer) {
+		return getStateFromMeta(
+				func_149660_a(world, pos.getX(), pos.getY(), pos.getZ(), side.getIndex(), hitX, hitY, hitZ, meta));
+	}
+
+	@AdapterField
+	private boolean hasWarnedOnBlockPlaced = false;
+
+	@MethodPair(name = "onBlockPlaced", type = OLDER)
+	public int func_149660_a(World world, int x, int y, int z, int side, float hitX, float hitY, float hitZ, int meta) {
+		if (!hasWarnedOnBlockPlaced) {
+			ModUpdaterPlugin.LOGGER.warn(
+					"The 1.7 version of the method onBlockPlaced has been called. This may cause problems for technical reasons.");
+			hasWarnedOnBlockPlaced = true;
+		}
+		return meta;
+	}
+
+	@Override
+	@MethodPair(name = "onBlockClicked", type = NEWER)
+	public void onBlockClicked(World world, BlockPos pos, EntityPlayer player) {
+		func_149699_a(world, pos.getX(), pos.getY(), pos.getZ(), player);
+	}
+
+	@MethodPair(name = "onBlockClicked", type = OLDER)
+	public void func_149699_a(World world, int x, int y, int z, EntityPlayer player) {
+		onBlockClicked(world, new BlockPos(x, y, z), player);
+	}
+
+	@Override
+	@MethodPair(name = "velocityToAddToEntity", type = NEWER)
+	public Vec3 modifyAcceleration(World world, BlockPos pos, Entity entity, Vec3 vec) {
+		func_149640_a(world, pos.getX(), pos.getY(), pos.getZ(), entity, vec);
+		return vec;
+	}
+
+	@MethodPair(name = "velocityToAddToEntity", type = OLDER)
+	public void func_149640_a(World world, int x, int y, int z, Entity entity, Vec3 vec) {
+		Vec3 modifiedAcceleration = modifyAcceleration(world, new BlockPos(x, y, z), entity, vec);
+		((Vec3Adapter) vec).func_72439_b(modifiedAcceleration.xCoord, modifiedAcceleration.yCoord,
+				modifiedAcceleration.zCoord);
+	}
 
 }
