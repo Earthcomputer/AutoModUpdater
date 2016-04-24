@@ -1,0 +1,73 @@
+The Automatic Mod Updater aims to make mods made for earlier versions of Minecraft compatible with modpacks for newer versions of Minecraft.
+In order to do this, a huge amount of bytecode manipulation must be done, and this file is here to explain these concepts.
+
+Instead of using traditional methods of coremodding such as replacing entire classes or methods, or looping through the code programmatically, the class transformers found in the core package focus on "adapting" classes so that they can cope with multiple versions.
+Instead of directly using their own class transformers, those wishing to automatically update code between Minecraft versions should use the API in the net.earthcomputer.modupdater.core package where possible.
+Instead of changing bytecode, the Mod Updater mostly works by adding code which simply redirects method calls from older mods to the newer methods, and vice versa.
+
+There multiple classes which can be used to solve compatibility problems:
+
+- ClassNameReplacements: if a class has been removed, the best way to deal with this is to create your own replacement class and then redirect references to the old class using ClassNameReplacements.replace.
+	For example, ClassNameReplacements.replace("net.minecraft.util.IIcon", "net.earthcomputer.modupdater.bountiful.oldclasses.IIcon") is found in the setup class which updates from 1.7.10 to 1.8 and deals with the removal of the IIcon class.
+	You can also replace class names algorithmically. This is useful for package changes. For example, when the package change from cpw.mods.fml. to net.minecraftforge.fml. happened, this is the code that deals with it:
+	ClassNameReplacements.register(new Function<String, String>() {
+		@Override
+		public String apply(String input) {
+			return input.startsWith("cpw.mods.fml.") ? "net.minecraftforge." + input.substring(8) : input;
+		}
+	});
+	
+- ClassAdapters: this is how you add fields and methods to classes. You can register an "adapter class" to be used to copy methods and fields from, and can even be compiled from a Java source. An adapter class must be a subclass of the class it's adapting.
+	To register an adapter class, use ClassAdapters.registerClassAdapter(class-you're-adapting, adapter-class).
+	For example, ClassAdapters.registerClassAdapter("net.minecraft.block.Block", "net.earthcomputer.modupdater.bountiful.adapters.BlockAdapter")
+	An adapter class may contain adapter fields and/or adapter methods, which will have some of the annotations described below.
+	
+- @AdapterField: this is an annotation that goes on a field in an adapter class if you want this field to be copied into the class you're adapting
+
+- @AdapterMethod: this is an annotation that goes on a method in an adapter class if you want this method to be copied into the class you're adapting. The adapter method will not be copied and a warning will be logged if a method with the same signature already exists, unless you use @AdapterMethod(replace = true)
+
+- @InSubclasses: this is an annotation mainly for internal use which signifies that the annotated method gets copied into subclasses of the class you're adapting when the conditions are right.
+	There are various fields in this annotation:
+		- String[] requirements (optional): signifies that this method will only be added to subclasses if the given methods exist in the subclasses. For example, "foo(Lcom/example/Bar;)I" means the method "int foo(com.example.Bar)" must exist
+		- String[] conflicts (optional): signifies that this method should *not* be added to subclasses if any of the given methods are present. This has the same format as requirements. A method with the same signature as this method will always conflict
+		- InSubclasses.EnumPriority priority (required): OLD_TO_NEW signifies that InSubclasses annotations in adapter classes registered first should run first. NEW_TO_OLD is the converse. This can be important when we're updating by multiple Minecraft versions.
+
+- @MethodPair: this annotation is used when there is an old version of an 'overridable' method, and a new version of the same 'overridable' method.
+	The method pair needs to have a:
+		- String name: an adapter-class-unique ID for this method pair
+		- MethodPair.EnumType type: whether this method is the OLDER variant or the NEWER variant
+	The following piece of code
+		@Override
+		@MethodPair(name = "examplePair", type = NEWER)
+		public int newerMethod(BlockPos pos) {
+			return olderMethod(pos.getX(), pos.getY(), pos.getZ());
+		}
+		
+		@MethodPair(name = "examplePair", type = OLDER)
+		public int olderMethod(int x, int y, int z) {
+			return newerMethod(new BlockPos(x, y, z));
+		}
+	Is almost (see below) equivalent to:
+		@Override
+		@InSubclasses(requirements = "olderMethod(III)I", priority = OLDER_TO_NEWER)
+		public int newerMethod(BlockPos pos) {
+			return olderMethod(pos.getX(), pos.getY(), pos.getZ());
+		}
+		
+		@AdapterMethod
+		@InSubclasses(requirements = "newerMethod(Lnet/minecraft/util/BlockPos;)I", priority = NEWER_TO_OLDER)
+		public int olderMethod(int x, int y, int z) {
+			return newerMethod(new BlockPos(x, y, z));
+		}
+	The difference is that in the first piece of code if a method invocation instruction invoking the paired method is detected during bytecode transformation, the opcode will be changed to invokespecial, to ensure true equivalency of both methods.
+- FieldAccess: if the signature or access flags of a field has changed, it may be necessary to use the FieldAccess class. Registering a field access using this class will replace all direct references to a field to getters and setters, which would probably be implemented using an adapter class.
+	For example, FieldAccess.register("net.minecraft.util.Vec3", "xCoord", "field_72450_a", "getNonFinalXCoord", "setNonFinalXCoord") changes all access to the field Vec3.xCoord (Searge name field_72450_a) to either a getter named getNonFinalXCoord or a setter named setNonFinalXCoord.
+	Note that 'get' references to fields are not remapped to getters in methods where the @Getter annotation is present. This is useful in the getters themselves, which may want to directly access the fields.
+	Similarly, 'set' references to fields are not remapped to setters in methods where the @Setter annotation is present.
+- MethodAccess: it is useful on rare occasions to redirect method calls from where they are called, not by just using a bridge method.
+	For example, MethodAccess.register("net.minecraft.block.Block", "spawnAsEntity", "func_180635_a", "(Lnet/minecraft/world/World;Lnet/minecraft/util/BlockPos;Lnet/minecraft/item/ItemStack;)V", "spawnAsEntityPolymorphic"); redirects all calls to the method
+	void spawnAsEntity [Searge name func_180635_a] (World, BlockPos, ItemStack)
+	to
+	void spawnAsEntityPolymorphic(World, BlockPos, ItemStack)
+	Note that invocations of the replaced methods are not remapped in methods with the @AccessMethod annotation present (this is similar to FieldAccess and the @Getter and @Setter annotations)
+ 
